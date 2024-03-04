@@ -52,7 +52,7 @@
                 "keep_tags_count": 1
             },
             "name": "mjs",
-            "path": "/workspace/OneTrainer/dataset/minjunes",
+            "path": "/workspace/OneTrainer/dataset/minjunes/raw",
             "seed": 1003632865,
             "enabled": true,
             "include_subdirectories": false,
