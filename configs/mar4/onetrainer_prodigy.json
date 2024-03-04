@@ -250,7 +250,7 @@
         }
     ],
     "embedding_weight_dtype": "FLOAT_32",
-    "lora_model_name": "/workspace/OneTrainer/models/sd_xl_base.1.0.safetensors",
+    "lora_model_name": "/workspace/OneTrainer/models/ckpts/sd_xl_base.1.0.safetensors",
     "lora_rank": 128,
     "lora_alpha": 64.0,
     "lora_weight_dtype": "BFLOAT_16",
