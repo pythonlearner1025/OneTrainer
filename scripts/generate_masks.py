@@ -1,11 +1,8 @@
 import os
 import sys
-
-from modules.module.RembgHumanModel import RembgHumanModel
-
-sys.path.append(os.getcwd())
-
 import torch
+sys.path.append(os.getcwd())
+from modules.module.RembgHumanModel import RembgHumanModel
 from modules.util.enum.GenerateMasksModel import GenerateMasksModel
 from modules.util.args.GenerateMasksArgs import GenerateMasksArgs
 from modules.module.RembgModel import RembgModel

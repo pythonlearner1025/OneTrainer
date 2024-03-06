@@ -53,6 +53,7 @@ class StableDiffusionXLModelLoader(BaseModelLoader, ModelLoaderModelSpecMixin, M
             base_model_name: str,
             vae_model_name: str,
     ) -> StableDiffusionXLModel | None:
+        print(base_model_name)
         with open(os.path.join(base_model_name, "meta.json"), "r") as meta_file:
             meta = json.load(meta_file)
             train_progress = TrainProgress(
