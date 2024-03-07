@@ -339,6 +339,7 @@ class GenericTrainer(BaseTrainer):
             )
 
             self.__save_backup_config(backup_path)
+            print(f"saving_backup_{train_progress.epoch}")
         except:
             traceback.print_exc()
             print("Could not save backup. Check your disk space!")
@@ -386,6 +387,7 @@ class GenericTrainer(BaseTrainer):
             try:
                 if os.path.isfile(save_path):
                     shutil.rmtree(save_path)
+                print(f'saving_lora_{train_progress.epoch}')
             except:
                 traceback.print_exc()
                 print("Could not delete partial save")
