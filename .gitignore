@@ -20,3 +20,8 @@ train.bat
 config.json
 *.pyc
 *.bak
+*.env
+
+# my stuff
+/dataloader*
+/dataloader

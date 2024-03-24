@@ -35,10 +35,14 @@ WORKDIR /OneTrainer
 COPY . /OneTrainer
 WORKDIR /OneTrainer
 
-# Install requirements
+# Install OT requirements
 RUN python3 --version
 RUN python3 -m pip install -r requirements.txt
 
+# Install Comfy requirements
+RUN cd ComfyUI && python3 -m pip install -r requirements.txt
+
 # Run the training UI
-CMD ["python3", "scripts/train_ui.py"]
+CMD ["python3", "scripts/train.py"]
+
 

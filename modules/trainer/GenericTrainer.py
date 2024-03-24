@@ -337,8 +337,10 @@ class GenericTrainer(BaseTrainer):
                 backup_path,
                 torch.float32
             )
-
-            self.__save_backup_config(backup_path)
+            try:
+                self.__save_backup_config(backup_path)
+            except:
+                pass
             print(f"saving_backup_{train_progress.epoch}")
         except:
             traceback.print_exc()
