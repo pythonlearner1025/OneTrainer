@@ -1,5 +1,6 @@
 # Use the NVIDIA base image with CUDA and PyTorch
-FROM nvcr.io/nvidia/pytorch:22.12-py3
+FROM  nvidia/cuda:11.8.0-devel-ubuntu22.04
+# FROM runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04 
 
 # sys
 RUN apt-get update --yes --quiet && DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
@@ -20,8 +21,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-re
     python3.10-tk \
     pip
 
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 999 \
-    && update-alternatives --config python3 && ln -s /usr/bin/python3 /usr/bin/python
+#RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 999 \
+#    && update-alternatives --config python3 && ln -s /usr/bin/python3 /usr/bin/python
 
 RUN pip install --upgrade pip
 

@@ -11,7 +11,8 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 # TODO save files
 # move all necessary config files & weights to volume
 #DATA = os.environ.get("DATA_PATH")
-rembg_path = os.path.join(os.path.realpath(__file__), 'ComfyUI', 'models', 'rembg')
+base_path = '/'
+rembg_path = os.path.join(base_path, 'ComfyUI', 'models', 'rembg')
     #rembg_path = 'jonathandinu/face-parsing'
 device = "cuda" if torch.cuda.is_available() else "cpu"
 image_processor = SegformerImageProcessor.from_pretrained(rembg_path, local_files_only=1)
