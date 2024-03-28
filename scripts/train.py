@@ -99,9 +99,11 @@ def auto_train():
         'lora_model_name': join(model_dir, 'ckpts', 'sd_xl_base_1.0.safetensors'),
         'lora_rank': 16,
         "backup_before_save": False,
-        "train_folder_path" : train_dir+'_segmented' if bool(rembg) else train_dir,
+        "train_folder_path" : train_dir,
         'reg_folder_path': join(reg_dir, 'headshots')
     }
+
+    print(user_params)
 
     callbacks = TrainCallbacks()
     commands = TrainCommands()
