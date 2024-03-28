@@ -45,35 +45,41 @@ def main():
     if not canceled or train_config.backup_before_save:
         trainer.end()
 
-ROOT = ''
-REG = ''
-COMFY_CONFIG = ''
+WORKSPACE = os.environ.get("WORKSPACE_PATH")
+COMFY_CONFIG = os.environ.get("COMFY_CONFIG")
+DATA = os.environ.get("DATA_PATH")
 def join(a,b,*c): return os.path.join(a,b,*c)
 def auto_train():
     train_id = os.environ.get('TRAIN_ID')
     gender = os.environ.get('TRAIN_GENDER')
     rembg = os.environ.get('REMBG')
     img_paths = os.environ.get("IMG_PATHS").split(',')
+    config_path = os.environ.get("OT_CONFIG_PATH")
 
     # setup dirs
-    train_dir = join(ROOT, str(train_id), 'train')
-    workspace_dir = join(ROOT, str(train_id))
-    #reg_dir = join(ROOT, REG)
-    out_path = join(workspace_dir, str(train_id))
+    workspace_dir = join(WORKSPACE, str(train_id))
+    train_dir = join(workspace_dir, 'train')
+    model_dir = join(DATA, 'models') 
+    reg_dir = join(DATA, 'reg')
 
-    os.mkdir(train_dir)
-    os.mkdir(workspace_dir)
+    # output path
+    out_path = join(model_dir, 'loras', train_id)
+
+    if not os.path.exists(workspace_dir):
+        os.mkdir(workspace_dir)
+    if not os.path.exists(train_dir):
+        os.mkdir(train_dir)
 
     # create training dir
     # pull imgs
     # do exponential backoff to keep trying up till X times
     train_imgs = []
     for img in img_paths:
-        img = join(train_dir, img)
-        with open(img, 'wb+') as f:
-            res = supabase.storage.from_('bucket_name').download(img)
+        savepath = join(train_dir, img.split('/')[-1])
+        with open(savepath, 'wb+') as f:
+            res = supabase.storage.from_('Photos').download(img)
             f.write(res)
-            train_imgs.append(f)
+            train_imgs.append(savepath)
 
     # simple captions
     for img in train_imgs:
@@ -82,20 +88,24 @@ def auto_train():
             f.write(f'ohw a {gender}')
 
     # background remove && process
-    if rembg:
+    if bool(rembg):
        train_dir = remove_backgrounds(train_dir) 
     
     # remember to delete lora when done (mem limited)
     user_params = {
         "workspace_dir": workspace_dir,
         "output_model_destination": out_path,
-        "concept_file_name" : "",
-        "backup_before_save": False 
+        'base_model_name': join(model_dir, 'ckpts', 'sd_xl_base_1.0.safetensors'),
+        'lora_model_name': join(model_dir, 'ckpts', 'sd_xl_base_1.0.safetensors'),
+        'lora_rank': 16,
+        "backup_before_save": False,
+        "train_folder_path" : train_dir+'_segmented' if bool(rembg) else train_dir,
+        'reg_folder_path': join(reg_dir, 'headshots')
     }
 
     callbacks = TrainCallbacks()
     commands = TrainCommands()
-    train_config = make_config(user_params)
+    train_config = make_config(config_path, user_params)
     trainer = GenericTrainer(train_config, callbacks, commands)
 
     trainer.start()
@@ -121,4 +131,16 @@ def auto_train():
         queue_prompt(flow, img_id)
 
 if __name__ == '__main__':
-    main()
+    # run ./docker.sh
+    auto_train()
+    exit(-1) 
+    p = 'test/IMG_6091'
+    p = 'private/83AAA1A9-FD8D-47E1-8AB5-17C4BBF92A02/train/original/IMG_6089'
+
+    res = supabase.storage.list_buckets()
+    print(res)
+    res = supabase.storage.from_('Photos').list()
+    print(res)
+    with open('img.jpg', 'wb') as f:
+        res = supabase.storage.from_('Photos').download(p)
+        f.write(res)

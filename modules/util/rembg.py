@@ -10,11 +10,14 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 # TODO save files
 # move all necessary config files & weights to volume
-
+DATA = os.environ.get("DATA_PATH")
+if DATA:
+    rembg_path = os.path.join(DATA, 'models', 'rembg')
+else:
+    rembg_path = 'jonathandinu/face-parsing'
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model_path = '' 
-image_processor = SegformerImageProcessor.from_pretrained(model_path, local_files_only=1)
-model = SegformerForSemanticSegmentation.from_pretrained(model_path, local_files_only=1).to(device)
+image_processor = SegformerImageProcessor.from_pretrained(rembg_path, local_files_only=1)
+model = SegformerForSemanticSegmentation.from_pretrained(rembg_path, local_files_only=1).to(device)
 
 # all except background, neck
 selected_labels = list(range(1,17))  # For skin, nose, left eye, right eye
@@ -103,12 +106,12 @@ def remove_backgrounds(f, out=None, move_txt=True, pad=10, gaus_kernel=35):
     proc = [] 
     for file in os.listdir(f):
         fname,ext = os.path.splitext(file)
-        if ext.lower() in ['.jpg', '.png', '.jpeg']:
+        if ext.lower() in ['.jpg', '.png', '.jpeg', '']:
             p = os.path.join(f,file) 
             p2 = os.path.join(new_folder, fname+'_seg'+'.png')
             proc.append((p,p2))
             #seg_face(p, p2, selected_labels, move_txt, pad, gaus_kernel)
-    print(len(proc))
+    print(f"reading to rembg over {len(proc)} files")
     with ThreadPoolExecutor(max_workers=4) as executor:
         for i,(p,p2) in enumerate(proc):
             executor.submit(seg_face, p, p2, selected_labels, move_txt, pad, gaus_kernel)

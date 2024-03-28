@@ -2,20 +2,27 @@ from modules.util.config.TrainConfig import TrainConfig
 import json
 from urllib import request
 
-DEFAULT_CONFIG = ''
-def make_config(params):
+def make_config(config_path, params):
     train_config = TrainConfig.default_values()
-    with open(DEFAULT_CONFIG, 'r') as f:
-        train_config.from_dict(json.load(f))
-    for k,v in params:
-        train_config[k] = v
+    with open(config_path, 'r') as f:
+        default = json.load(f)
+    for k,v in params.items():
+        default[k] = v
+        if k == 'train_folder_path':
+            default['concepts'][0]['path'] = v
+        elif k == 'reg_folder_path':
+            default['concepts'][1]['path'] = v
+    train_config.from_dict(default)
+    print("sanity check:")
+    print(train_config.concepts[0].path)
     return train_config
 
 def modify_workflow(flow, lora_id, prompt_p, prompt_n):
-    lora_node = flow['12']['inputs']
+    ckpt_node = flow['4']['inputs']
+    lora_node = flow['49']['inputs']
     prompt_neg_node = flow['7']['inputs']
     prompt_pos_node = flow["6"]['inputs']
-    ksampler_node = flow["3"]['inputs'] 
+    ksampler_node = flow["107"]['inputs'] 
     #save_image_node = flow["9"]['inputs']
     lora_node["lora_name"] = lora_id
     prompt_pos_node["text"] = prompt_p
