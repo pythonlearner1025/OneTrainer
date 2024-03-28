@@ -13,7 +13,7 @@ from modules.trainer.GenericTrainer import GenericTrainer
 
 from modules.util.rembg import remove_backgrounds
 from supabase import create_client, Client
-from scripts.util import make_config, queue_prompt, modify_workflow, prompt_n, prompt_p
+from scripts.util import *
 from dotenv import load_dotenv
 
 import subprocess
@@ -56,6 +56,33 @@ def join(a,b,*c): return os.path.join(a,b,*c)
 
 import socket
 import time
+import multiprocessing
+
+def run_comfy():
+    process = execute_command('cd ComfyUI && python3 main.py')
+    with open('/process_log.txt', 'w') as log_file:
+        while True:
+            output = process.stdout.readline().decode('utf-8')
+            error = process.stderr.readline().decode('utf-8')
+            if output == '' and error == '' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip())
+                log_file.write(output)
+                log_file.flush()
+            if error:
+                print(f"Error: {error.strip()}")
+                log_file.write(f"Error: {error}")
+                log_file.flush()
+
+def comfy_process():
+    try:
+        ps = multiprocessing.Process(target=run_comfy)
+        ps.start()
+    except Exception as e:
+        print(f"Error starting process: {str(e)}")
+        with open('/process_log.txt', 'a') as log_file:
+            log_file.write(f"Error starting process: {str(e)}\n")
 
 def is_port_open(host, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -63,9 +90,7 @@ def is_port_open(host, port):
     result = sock.connect_ex((host, port))
     sock.close()
     return result == 0
-
 import uuid
-
 base_path = '/'
 WORKSPACE = os.environ.get("WORKSPACE_PATH")
 COMFY_CONFIG = os.environ.get("COMFY_CONFIG")
@@ -73,10 +98,11 @@ DATA = os.environ.get("DATA_PATH")
 N_IMGS = os.environ.get("NUM_IMGS")
 N_IMGS = 10 if not N_IMGS else N_IMGS
 def auto_train():
-    execute_command('cd ComfyUI && python3 main.py --listen')
-    time.sleep(15)
-    if is_port_open('localhost', 8188):
-        print("PORT OPEN")
+    #execute_command('cd ComfyUI && python3 main.py --listen')
+    comfy_process()
+    #run_comfy()
+    #if is_port_open('localhost', 8188):
+    #    print("PORT OPEN")
     train_id = str(uuid.uuid4())[:5] #os.environ.get('TRAIN_ID')
     gender = os.environ.get('TRAIN_GENDER')
     rembg = os.environ.get('REMBG')
@@ -161,10 +187,16 @@ def auto_train():
     modify_workflow(flow, train_id, pos, neg, bs=BS)
     for i in range(N_IMGS//BS):
         img_path = join(out_dir, f'{train_id}_{i}')
+        test_queue_prompt()
         queue_prompt(flow, img_path)
 
     uploaded = 0
     while uploaded < N_IMGS: 
+        if os.path.exists('/process_log.txt'):
+            with open('/process_log.txt', 'r') as f:
+                print(f.read())
+            time.sleep(10)
+
         if not os.path.exists(out_dir): continue
         for img in os.listdir(out_dir):
             path_remote = f'test/uploaded/{img}.png'
@@ -188,6 +220,7 @@ def auto_train():
                 print(e)
 
     os.remove(out_dir)
+    ps.terminate()
 
 if __name__ == '__main__':
     auto_train()

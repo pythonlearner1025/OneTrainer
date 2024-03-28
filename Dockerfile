@@ -1,5 +1,5 @@
 # Use the NVIDIA base image with CUDA and PyTorch
-FROM  nvidia/cuda:11.8.0-devel-ubuntu22.04
+FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 # FROM runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04 
 
 # sys
@@ -37,4 +37,5 @@ RUN python3 --version
 # Copy the rest of the application code to the working directory
 COPY . .
 # Set the entrypoint command
+#RUN python3 ComfyUI/main.py --listen
 ENTRYPOINT ["python3", "scripts/train.py"]

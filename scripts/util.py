@@ -51,6 +51,14 @@ def modify_workflow(flow, lora_id, prompt_p, prompt_n, bs=8):
 
 import traceback
 
+def test_queue_prompt():
+    try:
+        req = request.Request("http://127.0.0.1:8188/prompt", method='GET') 
+        response = request.urlopen(req)
+        print(response.read().decode('utf-8'))
+    except Exception as e:
+        print(e)
+
 def queue_prompt(prompt_workflow, name, random=True):
     try:
         prompt_workflow["123"]["inputs"]["filename_prefix"] = name
@@ -58,8 +66,9 @@ def queue_prompt(prompt_workflow, name, random=True):
             set_random_seeds(prompt_workflow)
         p = {"prompt": prompt_workflow}
         data = json.dumps(p).encode('utf-8')
-        req = request.Request("http://127.0.0.1:8188/prompt", data=data)
-        request.urlopen(req)
+        req = request.Request("http://127.0.0.1:8188/prompt", data=data, method='POST')
+        response = request.urlopen(req)
+        print(response.read().decode('utf-8'))  # Print the response data
     except Exception as e:
         print("An error occurred:")
         print(traceback.format_exc())

@@ -114,7 +114,7 @@
     "learning_rate": 1.0,
     "learning_rate_warmup_steps": 0,
     "learning_rate_cycles": 1,
-    "epochs": 4,
+    "epochs": 1,
     "batch_size": 1,
     "gradient_accumulation_steps": 1,
     "ema": "OFF",
