@@ -1,3 +1,19 @@
+# DEPLOYMENT NOTES
+
+install docker
+set .deploy-envs
+set ComfyUI/.deploy-envs
+ensure models exist in volumedata
+
+### TODO
+
+TEST IN RUNPOD, should be callable using their python SDK
+
+- should only build when changes to code (pull from git & check)
+- otherwise run from build images
+- the only changes should be in attached --env-file, /volumedata
+- make sure to reset volumedata to be persistent in Runpod network volume
+
 # OneTrainer
 
 OneTrainer is a one-stop solution for all your stable diffusion training needs.
