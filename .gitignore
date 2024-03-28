@@ -25,3 +25,4 @@ config.json
 # my stuff
 /dataloader*
 /dataloader
+*.safetensors
