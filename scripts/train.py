@@ -59,6 +59,7 @@ import time
 import multiprocessing
 
 def run_comfy():
+    # TODO subprocess is sus
     process = execute_command('cd ComfyUI && python3 main.py')
     with open('/process_log.txt', 'w') as log_file:
         while True:
@@ -79,6 +80,10 @@ def comfy_process():
     try:
         ps = multiprocessing.Process(target=run_comfy)
         ps.start()
+        if ps.is_alive():
+            print("Process is still running")
+        else:
+            print("Process completed")
     except Exception as e:
         print(f"Error starting process: {str(e)}")
         with open('/process_log.txt', 'a') as log_file:
@@ -90,16 +95,18 @@ def is_port_open(host, port):
     result = sock.connect_ex((host, port))
     sock.close()
     return result == 0
+
 import uuid
+
 base_path = '/'
 WORKSPACE = os.environ.get("WORKSPACE_PATH")
 COMFY_CONFIG = os.environ.get("COMFY_CONFIG")
-DATA = os.environ.get("DATA_PATH")
+VOLUME = os.environ.get("VOLUME_PATH")
 N_IMGS = os.environ.get("NUM_IMGS")
 N_IMGS = 10 if not N_IMGS else N_IMGS
 def auto_train():
     #execute_command('cd ComfyUI && python3 main.py --listen')
-    comfy_process()
+    #comfy_process()
     #run_comfy()
     #if is_port_open('localhost', 8188):
     #    print("PORT OPEN")
@@ -110,11 +117,11 @@ def auto_train():
     config_path = os.environ.get("OT_CONFIG_PATH")
 
     # setup dirs
-    workspace_dir = join(WORKSPACE, str(train_id))
+    workspace_dir = join(WORKSPACE, train_id)
     train_dir = join(workspace_dir, 'train')
-    model_dir = join(base_path, 'ComfyUI', 'models') 
-    reg_dir = join(DATA, 'reg')
-    out_dir = join(workspace_dir, 'user_out')
+    model_dir = join(VOLUME, 'models') 
+    reg_dir = join(VOLUME, 'reg')
+    out_dir = join(VOLUME, train_id)
 
     # output path
     out_path = join(model_dir, 'loras', f'{train_id}.safetensors')
@@ -184,7 +191,8 @@ def auto_train():
 
     pos, neg = prompt_p(gender), prompt_n(gender)
     BS = 4
-    modify_workflow(flow, train_id, pos, neg, bs=BS)
+    lora_id = out_path.split('/')[-1]
+    modify_workflow(flow, lora_id, pos, neg, bs=BS)
     for i in range(N_IMGS//BS):
         img_path = join(out_dir, f'{train_id}_{i}')
         test_queue_prompt()
@@ -220,9 +228,11 @@ def auto_train():
                 print(e)
 
     os.remove(out_dir)
-    ps.terminate()
 
 if __name__ == '__main__':
+    # TODO
+    # 2nd docker contianer for COMFY
+    # share to both
     auto_train()
     exit(-1) 
     # what you want is a dedicated out dir

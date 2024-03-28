@@ -1,6 +1,5 @@
 # Use the NVIDIA base image with CUDA and PyTorch
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
-# FROM runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04 
 
 # sys
 RUN apt-get update --yes --quiet && DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
@@ -8,7 +7,7 @@ RUN apt-get update --yes --quiet && DEBIAN_FRONTEND=noninteractive apt-get insta
     build-essential apt-utils \
     wget curl vim git ca-certificates kmod \
     nvidia-driver-525 \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # PYTHON 3.10
 RUN add-apt-repository --yes ppa:deadsnakes/ppa && apt-get update --yes --quiet
@@ -20,9 +19,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-re
     python3.10-gdbm \
     python3.10-tk \
     pip
-
-#RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 999 \
-#    && update-alternatives --config python3 && ln -s /usr/bin/python3 /usr/bin/python
 
 RUN pip install --upgrade pip
 
@@ -36,6 +32,13 @@ RUN python3 --version
 
 # Copy the rest of the application code to the working directory
 COPY . .
+
+RUN chmod +x scripts/train.sh
+CMD ["scripts/train.sh"]
+
+# Spawn python3 ComfyUI/main.py as another process
+#CMD ["python3", "ComfyUI/main.py", "--listen"]
+
 # Set the entrypoint command
-#RUN python3 ComfyUI/main.py --listen
-ENTRYPOINT ["python3", "scripts/train.py"]
+#ENTRYPOINT ["python3", "scripts/train.py"]
+

@@ -28,3 +28,5 @@ config.json
 *.safetensors
 /data
 /data*
+/datavolume
+/datavolume*
