@@ -26,3 +26,5 @@ config.json
 /dataloader*
 /dataloader
 *.safetensors
+/data
+/data*
