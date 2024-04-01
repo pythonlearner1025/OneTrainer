@@ -16,7 +16,7 @@ from supabase import create_client, Client
 from scripts.util import *
 from dotenv import load_dotenv
 
-import subprocess
+import runpod
 
 load_dotenv()
 
@@ -47,91 +47,37 @@ def main():
     if not canceled or train_config.backup_before_save:
         trainer.end()
 
-def execute_command(command):
-    print(f'executing cmd: {command}')
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    return process
-
 def join(a,b,*c): return os.path.join(a,b,*c)
-
-import socket
-import time
-import multiprocessing
-
-def run_comfy():
-    # TODO subprocess is sus
-    process = execute_command('cd ComfyUI && python3 main.py')
-    with open('/process_log.txt', 'w') as log_file:
-        while True:
-            output = process.stdout.readline().decode('utf-8')
-            error = process.stderr.readline().decode('utf-8')
-            if output == '' and error == '' and process.poll() is not None:
-                break
-            if output:
-                print(output.strip())
-                log_file.write(output)
-                log_file.flush()
-            if error:
-                print(f"Error: {error.strip()}")
-                log_file.write(f"Error: {error}")
-                log_file.flush()
-
-def comfy_process():
-    try:
-        ps = multiprocessing.Process(target=run_comfy)
-        ps.start()
-        if ps.is_alive():
-            print("Process is still running")
-        else:
-            print("Process completed")
-    except Exception as e:
-        print(f"Error starting process: {str(e)}")
-        with open('/process_log.txt', 'a') as log_file:
-            log_file.write(f"Error starting process: {str(e)}\n")
-
-def is_port_open(host, port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(1)  # Set a timeout of 1 second
-    result = sock.connect_ex((host, port))
-    sock.close()
-    return result == 0
+def makeif(f):
+    if not os.path.exists(f): os.mkdir(f)
 
 import uuid
 
-base_path = '/'
-WORKSPACE = os.environ.get("WORKSPACE_PATH")
-COMFY_CONFIG = os.environ.get("COMFY_CONFIG")
-VOLUME = os.environ.get("VOLUME_PATH")
-N_IMGS = os.environ.get("NUM_IMGS")
-N_IMGS = 10 if not N_IMGS else N_IMGS
-def auto_train():
-    #execute_command('cd ComfyUI && python3 main.py --listen')
-    #comfy_process()
-    #run_comfy()
-    #if is_port_open('localhost', 8188):
-    #    print("PORT OPEN")
+WORKSPACE = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+def auto_train(job):
     train_id = str(uuid.uuid4())[:5] #os.environ.get('TRAIN_ID')
-    gender = os.environ.get('TRAIN_GENDER')
-    rembg = os.environ.get('REMBG')
-    img_paths = os.environ.get("IMG_PATHS").split(',')
-    config_path = os.environ.get("OT_CONFIG_PATH")
+    job = job["input"]
+    gender = job["gender"]
+    rembg = job["rembg"]
+    img_paths = job["img_paths"].split(',')
 
     # setup dirs
-    workspace_dir = join(WORKSPACE, train_id)
-    train_dir = join(workspace_dir, 'train')
-    model_dir = join(VOLUME, 'models') 
-    reg_dir = join(VOLUME, 'reg')
-    out_dir = join(VOLUME, train_id)
+    out_dir = join(WORKSPACE, train_id)
+    data_dir = join(WORKSPACE, 'data')
+    config_path = join(WORKSPACE, 'configs', 'train.json')
 
-    # output path
-    out_path = join(model_dir, 'loras', f'{train_id}.safetensors')
+    # TODO cache these
+    out_path = join(data_dir, 'outs', f'{train_id}.safetensors')
+    model_dir = join(data_dir, "models")
+    reg_dir = join(data_dir, "reg")
+    train_dir = join(data_dir, 'train_imgs')
 
-    if not os.path.exists(WORKSPACE):
-        os.mkdir(WORKSPACE)
-    if not os.path.exists(workspace_dir):
-        os.mkdir(workspace_dir)
-    if not os.path.exists(train_dir):
-        os.mkdir(train_dir)
+    makeif(data_dir)
+    makeif(join(data_dir, 'outs'))
+    makeif(reg_dir)
+    makeif(train_dir)
+    makeif(out_dir)
 
     # create training dir
     # pull imgs
@@ -154,9 +100,10 @@ def auto_train():
     if bool(rembg):
        train_dir = remove_backgrounds(train_dir) 
     
+    
     # remember to delete lora when done (mem limited)
     user_params = {
-        "workspace_dir": workspace_dir,
+        "workspace_dir": out_dir,
         "output_model_destination": out_path,
         'base_model_name': join(model_dir, 'checkpoints', 'sd_xl_base_1.0.safetensors'),
         'lora_model_name': join(model_dir, 'checkpoints', 'sd_xl_base_1.0.safetensors'),
@@ -168,7 +115,12 @@ def auto_train():
 
     print(user_params)
 
-    callbacks = TrainCallbacks()
+    def train_epoch_callback(train_prog, max_sample, max_epoch):
+        print("--callback--")
+        print(train_prog)
+        runpod.serverless.progress_update(job, f'{train_prog}')
+
+    callbacks = TrainCallbacks(on_update_train_progress=train_epoch_callback)
     commands = TrainCommands()
     train_config = make_config(config_path, user_params)
     trainer = GenericTrainer(train_config, callbacks, commands)
@@ -180,60 +132,31 @@ def auto_train():
         trainer.train()
     except KeyboardInterrupt:
         canceled = True
+        trainer.callbacks
 
     if not canceled or train_config.backup_before_save:
         trainer.end()
 
     # purge mem
     # upload model
-    with open(COMFY_CONFIG, 'r') as f: 
-        flow = json.load(f)
+    with open(out_path, 'rb') as f:
+        path = f'loras/{train_id}.safetensors'
+        supabase.storage.from_("Loras").upload(
+            file=f,
+            path=path,
+            file_options={'content-type': 'application/octet-stream'}
+        )
 
-    pos, neg = prompt_p(gender), prompt_n(gender)
-    BS = 4
-    lora_id = out_path.split('/')[-1]
-    modify_workflow(flow, lora_id, pos, neg, bs=BS)
-    for i in range(N_IMGS//BS):
-        img_path = join(out_dir, f'{train_id}_{i}')
-        test_queue_prompt()
-        queue_prompt(flow, img_path)
-
-    uploaded = 0
-    while uploaded < N_IMGS: 
-        if os.path.exists('/process_log.txt'):
-            with open('/process_log.txt', 'r') as f:
-                print(f.read())
-            time.sleep(10)
-
-        if not os.path.exists(out_dir): continue
-        for img in os.listdir(out_dir):
-            path_remote = f'test/uploaded/{img}.png'
-            path_local = join(out_dir, img)
-            try:
-                with open(path_local, 'rb') as f:
-                    req = supabase.storage.from_("Photos").upload(
-                        file=f,
-                        path=path_remote,
-                        file_options={'content-type': 'img/png'}
-                    )
-                if req.status_code == 200: 
-                    uploaded += 1
-                    print(f'SUCCESS upload of {path_local} -> {path_remote}')
-                    os.remove(path_local)
-                else:
-                    # TODO fallback
-                    print(f'FAIL upload of {path_local} -> {path_remote}')
-                    pass
-            except Exception as e:
-                print(e)
-
-    os.remove(out_dir)
+    return path
 
 if __name__ == '__main__':
     # TODO
     # 2nd docker contianer for COMFY
     # share to both
-    auto_train()
+    runpod.serverless.start({
+        "handler": auto_train,
+        "return_aggregate_stream": True
+        })
     exit(-1) 
     # what you want is a dedicated out dir
     # then anything that appears in the outdir is immediately uploaded
