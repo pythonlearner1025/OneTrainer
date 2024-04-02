@@ -13,7 +13,6 @@ from modules.trainer.GenericTrainer import GenericTrainer
 
 from modules.util.rembg import remove_backgrounds
 from supabase import create_client, Client
-from scripts.util import *
 from dotenv import load_dotenv
 
 import runpod
@@ -47,6 +46,26 @@ def main():
     if not canceled or train_config.backup_before_save:
         trainer.end()
 
+def make_config(config_path, params):
+    train_config = TrainConfig.default_values()
+    with open(config_path, 'r') as f:
+        default = json.load(f)
+    for k,v in params.items():
+        default[k] = v
+        if k == 'train_folder_path':
+            default['concepts'][0]['path'] = v
+            # TODO this is temp for testing purposes
+            default['concepts'][0]['repeats'] = 1
+        elif k == 'reg_folder_path':
+            default['concepts'][1]['path'] = v
+            # TODO this is also temp
+            default['concepts'][1]['repeeats'] = 0.1
+    default['concepts'] = default['concepts'][:1]
+    train_config.from_dict(default)
+    print("sanity check:")
+    print(train_config.concepts[0].path)
+    return train_config
+
 def join(a,b,*c): return os.path.join(a,b,*c)
 def makeif(f):
     if not os.path.exists(f): os.mkdir(f)
@@ -57,10 +76,10 @@ WORKSPACE = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 def auto_train(job):
     train_id = str(uuid.uuid4())[:5] #os.environ.get('TRAIN_ID')
-    job = job["input"]
-    gender = job["gender"]
-    rembg = job["rembg"]
-    img_paths = job["img_paths"].split(',')
+    args = job["input"]
+    gender = args["gender"]
+    rembg = args["rembg"]
+    img_paths = args["img_paths"].split(',')
 
     # setup dirs
     out_dir = join(WORKSPACE, train_id)

@@ -33,12 +33,4 @@ RUN python3 --version
 # Copy the rest of the application code to the working directory
 COPY . .
 
-RUN chmod +x scripts/train.sh
-CMD ["scripts/train.sh"]
-
-# Spawn python3 ComfyUI/main.py as another process
-#CMD ["python3", "ComfyUI/main.py", "--listen"]
-
-# Set the entrypoint command
-#ENTRYPOINT ["python3", "scripts/train.py"]
-
+CMD ["python3 scripts/train.py"]

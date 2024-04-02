@@ -19,6 +19,7 @@ d = {
     "input": i
 }
 
-cmd = f'conda run python scripts/train.py --test_input \'{json.dumps(d)}\''
+#cmd = f'conda run python scripts/train.py --test_input \'{json.dumps(d)}\''
+cmd = f'conda run python scripts/train.py'
 o, e, c = execute_command(cmd)
 print(o, e)
